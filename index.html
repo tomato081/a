@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>과학수사 진로활동 - CCTV 용의자 비교</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --muted: #94a3b8;
+      --text: #e5e7eb;
+      --accent: #38bdf8;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+      background: linear-gradient(160deg, #020617, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: 1.6rem; }
+    p { color: var(--muted); line-height: 1.6; }
+    .warning {
+      border-left: 4px solid var(--warn);
+      background: rgba(245, 158, 11, 0.12);
+      padding: 12px;
+      border-radius: 10px;
+      margin: 14px 0 22px;
+      color: #fde68a;
+      font-size: 0.95rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      background: rgba(17,24,39,0.9);
+      border: 1px solid #1f2937;
+      border-radius: 14px;
+      padding: 16px;
+    }
+    label { display:block; margin-bottom: 8px; font-weight: 600; }
+    input[type="file"] { width: 100%; margin-bottom: 10px; }
+    .preview {
+      width: 100%;
+      min-height: 240px;
+      border: 1px dashed #334155;
+      border-radius: 10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color: var(--muted);
+      overflow: hidden;
+      background: #020617;
+    }
+    .preview img { width:100%; height:100%; object-fit: contain; }
+    .thumb-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 8px;
+      width: 100%;
+      padding: 8px;
+    }
+    .thumb {
+      border: 1px solid #334155;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #020617;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .thumb img {
+      width: 100%;
+      aspect-ratio: 1.4 / 1;
+      object-fit: cover;
+      display: block;
+    }
+    .thumb span {
+      font-size: 0.72rem;
+      color: #cbd5e1;
+      padding: 0 4px 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .controls {
+      margin-top: 16px;
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap: wrap;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--accent);
+      color: #0c1725;
+    }
+    button:disabled { opacity: 0.5; cursor:not-allowed; }
+    input[type="range"] { width: 220px; }
+    .status { margin-top: 14px; color: #bae6fd; }
+    .results { margin-top: 18px; display:grid; gap: 8px; }
+    .result {
+      background: #0b1220;
+      border: 1px solid #1f2937;
+      border-radius: 10px;
+      padding: 10px;
+      display:grid;
+      grid-template-columns: 86px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+    .result img { width: 86px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #334155; }
+    .score { font-weight: 700; }
+    .match { color: var(--ok); }
+    .nomatch { color: var(--bad); }
+    @media (max-width: 850px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 CCTV 용의자 사진 비교 프로그램 (교육용)</h1>
+    <p>
+      CCTV에서 추출한 얼굴 이미지 1장과 용의자 후보 사진 여러 장을 비교하여 유사도를 계산합니다.
+      <strong>진로 체험/교육 목적</strong>으로 사용하세요.
+    </p>
+    <div class="warning">
+      실제 수사기관 수준의 정확도를 보장하지 않습니다. 조명, 화질, 마스크, 각도에 따라 오탐/미탐이 발생할 수 있습니다.
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <label for="cctvInput">1) CCTV 이미지 업로드 (1장)</label>
+        <input id="cctvInput" type="file" accept="image/*" />
+        <div id="cctvPreview" class="preview">CCTV 이미지 미리보기</div>
+      </section>
+
+      <section class="card">
+        <label for="suspectInput">2) 용의자 후보 사진 업로드 (여러 장 가능)</label>
+        <input id="suspectInput" type="file" accept="image/*" multiple />
+        <div id="suspectCount" class="preview">후보 이미지 0장</div>
+        <p style="margin-top:8px; font-size:0.85rem;">업로드 즉시 아래에 썸네일 미리보기가 표시됩니다.</p>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top: 16px;">
+      <div class="controls">
+        <button id="compareBtn" disabled>비교 시작</button>
+        <label for="threshold">판정 임계값</label>
+        <input id="threshold" type="range" min="0.3" max="0.8" step="0.01" value="0.5" />
+        <span id="thresholdText">0.50</span>
+      </div>
+      <div id="status" class="status">모델 로딩 중...</div>
+      <div id="results" class="results"></div>
+    </section>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script>
+    const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+
+    const cctvInput = document.getElementById('cctvInput');
+    const suspectInput = document.getElementById('suspectInput');
+    const cctvPreview = document.getElementById('cctvPreview');
+    const suspectCount = document.getElementById('suspectCount');
+    const compareBtn = document.getElementById('compareBtn');
+    const threshold = document.getElementById('threshold');
+    const thresholdText = document.getElementById('thresholdText');
+    const status = document.getElementById('status');
+    const results = document.getElementById('results');
+
+    let cctvFile = null;
+    let suspectFiles = [];
+
+    threshold.addEventListener('input', () => {
+      thresholdText.textContent = Number(threshold.value).toFixed(2);
+    });
+
+    function readAsImage(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    function setCctvPreview(file) {
+      if (!file) {
+        cctvPreview.textContent = 'CCTV 이미지 미리보기';
+        return;
+      }
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      cctvPreview.innerHTML = '';
+      cctvPreview.appendChild(img);
+    }
+
+    function updateReadyState() {
+      compareBtn.disabled = !(cctvFile && suspectFiles.length > 0);
+    }
+
+    function renderSuspectPreview(files) {
+      suspectCount.innerHTML = '';
+      if (!files.length) {
+        suspectCount.textContent = '후보 이미지 0장';
+        return;
+      }
+
+      const grid = document.createElement('div');
+      grid.className = 'thumb-grid';
+
+      files.forEach((file) => {
+        const card = document.createElement('div');
+        card.className = 'thumb';
+
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        img.alt = file.name;
+
+        const name = document.createElement('span');
+        name.textContent = file.name;
+
+        card.append(img, name);
+        grid.appendChild(card);
+      });
+
+      suspectCount.appendChild(grid);
+    }
+
+    cctvInput.addEventListener('change', (e) => {
+      cctvFile = e.target.files[0] || null;
+      setCctvPreview(cctvFile);
+      updateReadyState();
+    });
+
+    suspectInput.addEventListener('change', (e) => {
+      suspectFiles = Array.from(e.target.files || []);
+      renderSuspectPreview(suspectFiles);
+      updateReadyState();
+    });
+
+    async function getDescriptorFromImage(image) {
+      const detection = await faceapi
+        .detectSingleFace(image, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+      return detection ? detection.descriptor : null;
+    }
+
+    function distanceToPercent(distance) {
+      const similarity = Math.max(0, (1 - distance)) * 100;
+      return similarity.toFixed(1);
+    }
+
+    compareBtn.addEventListener('click', async () => {
+      results.innerHTML = '';
+      status.textContent = '비교 중... (이미지 수에 따라 수 초~수십 초 소요)';
+
+      try {
+        const cctvImage = await readAsImage(cctvFile);
+        const cctvDesc = await getDescriptorFromImage(cctvImage);
+        if (!cctvDesc) {
+          status.textContent = 'CCTV 이미지에서 얼굴을 찾지 못했습니다. 더 선명한 정면 사진을 사용해보세요.';
+          return;
+        }
+
+        const matcher = new faceapi.FaceMatcher([{ label: 'CCTV', descriptors: [cctvDesc] }], Number(threshold.value));
+        const rows = [];
+
+        for (const file of suspectFiles) {
+          const img = await readAsImage(file);
+          const desc = await getDescriptorFromImage(img);
+          if (!desc) {
+            rows.push({ file, message: '얼굴 미검출', distance: null, isMatch: false });
+            continue;
+          }
+          const best = matcher.findBestMatch(desc);
+          const distance = best.distance;
+          rows.push({
+            file,
+            message: best.label === 'unknown' ? '불일치 가능성 높음' : '일치 가능성 있음',
+            distance,
+            isMatch: best.label !== 'unknown'
+          });
+        }
+
+        rows.sort((a, b) => (a.distance ?? 9) - (b.distance ?? 9));
+
+        for (const r of rows) {
+          const row = document.createElement('article');
+          row.className = 'result';
+
+          const img = document.createElement('img');
+          img.src = URL.createObjectURL(r.file);
+          img.alt = r.file.name;
+
+          const meta = document.createElement('div');
+          if (r.distance === null) {
+            meta.innerHTML = `<div><strong>${r.file.name}</strong></div><div class="nomatch">${r.message}</div>`;
+          } else {
+            const percent = distanceToPercent(r.distance);
+            const cls = r.isMatch ? 'match' : 'nomatch';
+            meta.innerHTML = `
+              <div><strong>${r.file.name}</strong></div>
+              <div class="score">거리값: ${r.distance.toFixed(4)} / 유사도(참고): ${percent}%</div>
+              <div class="${cls}">${r.message}</div>
+            `;
+          }
+
+          row.append(img, meta);
+          results.appendChild(row);
+        }
+
+        const matchCount = rows.filter(r => r.isMatch).length;
+        status.textContent = `완료: ${rows.length}장 분석, 일치 가능성 있음 ${matchCount}장 (임계값 ${Number(threshold.value).toFixed(2)})`;
+      } catch (err) {
+        console.error(err);
+        status.textContent = '오류가 발생했습니다. 브라우저 콘솔을 확인하거나 다른 이미지로 시도해보세요.';
+      }
+    });
+
+    (async function init() {
+      if (location.protocol === 'file:') {
+        status.textContent = '팁: 파일을 더블클릭해 열면 일부 브라우저에서 모델 로딩이 차단될 수 있어요. 터미널에서 로컬 서버로 실행하세요 (예: python3 -m http.server 5500).';
+        return;
+      }
+      try {
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+        ]);
+        status.textContent = '모델 로딩 완료. 이미지를 업로드해 비교를 시작하세요.';
+      } catch (error) {
+        console.error(error);
+        status.textContent = '모델 로딩 실패: 인터넷 연결 상태를 확인하세요.';
+      }
+    })();
+  </script>
+</body>
+</html>
